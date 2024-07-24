@@ -1,80 +1,61 @@
-from typing import Final
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import logging
+import wikipedia
 
-TOKEN: Final = '6456617315:AAGixsiR4jaG7z3DXLNF8SPge0UEOJ6G1BQ6456617315:AAGixsiR4jaG7z3DXLNF8SPge0UEOJ6G1BQ'
-BOT_USERNAME: Final = '@wikipediya_new_bot'
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.utils import executor
+from aiogram.types import ParseMode
 
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Hello homeless are you soo free do your tasks or homework,baby')
-
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('what do you wont')
+API_TOKEN = '6527627892:AAH_brpnVCyzHl7AahqDOa-xkV2LsE4ciDc'
+wikipedia.set_lang('uz')
 
 
-async def costum_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Fuck you')
-
-    # Responses
+# Configure logging
 
 
-def handle_response(text: str) -> str:
-    processed: str = text.lower()
+logging.basicConfig(level=logging.INFO)
 
-    if 'hello' in text:
-        return 'hey there!'
-
-    if 'how ore you' in text:
-        return 'I am good!'
-
-    if 'i love you' in text:
-        return 'fuck you!'
-    return 'I dont understand what you wrote .!. '
+# Initialize bot and dispatcher
 
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_type: str = update.message.chat.type
-    text: str = update.message.text
-
-    print(f'User({update.message.chat.id}) in {message_type}:"{text}"')
-
-    if message_type == 'group':
-        if BOT_USERNAME in text:
-            new_text: str = text.replace(BOT_USERNAME, '').strip()
-            response: str = handle_response(new_text)
-        else:
-            return
-    else:
-        response: str = handle_response(text)
-
-    print('bot:', response)
-    await update.message.reply_text(response)
+bot = Bot(token=API_TOKEN)
 
 
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f'Update {update} caused error {context.error}')
+dp = Dispatcher(bot)
 
+
+@dp.message_handler(commands=['start', 'help'])
+
+async def send_welcome(message: types.Message):
+
+    """
+
+
+    This handler will be called when user sends `/start` or `/help` command
+
+    """
+
+    await message.reply("Wikipedia botga xush kelib san!")
+
+
+
+
+@dp.message_handler()
+
+async def sendWIKI(message: types.Message):
+    try:
+        # Fetch the summary from Wikipedia
+        respond = wikipedia.summary(message.text)
+        await message.answer(respond)
+    except wikipedia.exceptions.DisambiguationError as e:
+        await message.answer(f'Bu mavzuga oid ko‘plab maqolalar topildi: {e.options}')
+    except wikipedia.exceptions.PageError:
+        await message.answer('Bu mavzuga oid maqola topilmadi')
+    except Exception as e:
+        await message.answer(f'Noma’lum xato yuz berdi: {e}')
 
 if __name__ == '__main__':
-    print('Start bot...')
-    app = Application.builder().token(TOKEN).build()
+    executor.start_polling(dp, skip_updates=True)
 
-    app.add_handler(CommandHandler('start', start_command))
-    app.add_handler(CommandHandler('help', start_command))
-    app.add_handler(CommandHandler('custom', start_command))
-    # app.add_handler(CommandHandler('start',start_command))
+if __name__ == '__main__':
 
-    # Messages
-    app.add_handler(MessageHandler(filters.TEXT, handle_message))
-
-    # ERROR
-    app.add_handler(error)
-
-    print('Polling...')
-    app.run_polling(poll_interval=3)
-
-
-
-
+    executor.start_polling(dp, skip_updates=True)
